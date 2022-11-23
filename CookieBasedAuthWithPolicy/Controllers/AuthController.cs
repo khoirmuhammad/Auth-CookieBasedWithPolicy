@@ -143,7 +143,7 @@ namespace CookieBasedAuthWithPolicy.Controllers
             return Ok("Update Auth Policy");
         }
 
-        [Authorize(Policy = AuthPolicy.DeleteAuthPolicy)]
+        [Authorize(Policy = AuthPolicy.DeleteAuthPolicy, Roles = RoleConstant.Admin)]
         [HttpDelete]
         public IActionResult Delete()
         {
