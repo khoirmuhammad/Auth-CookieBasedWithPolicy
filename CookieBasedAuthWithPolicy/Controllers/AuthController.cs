@@ -50,6 +50,18 @@ namespace CookieBasedAuthWithPolicy.Controllers
         }
     }
 
+    public class Credential
+    {
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+
+    public class Response
+    {
+        public bool IsSuccess { get; set; } = true;
+        public string Message { get; set;} = string.Empty;
+    }
+
     public static class RoleConstant
     {
         public const string User = "User";
@@ -70,16 +82,26 @@ namespace CookieBasedAuthWithPolicy.Controllers
     {
         [HttpPost]
         [Route("Login")]
-        public async Task<IActionResult> Login(string username, string password)
+        public async Task<IActionResult> Login([FromBody] Credential credential)
         {
+            Response response = new Response();
+
             User userObj = new User();
 
-            bool isAuth = userObj.GetUsers().Where(w => w.Username == username && w.Password == password).Any();
+            bool isAuth = userObj.GetUsers().Where(w => 
+                w.Username == credential.Username && w.Password == credential.Password).Any();
 
             if (!isAuth)
-                return Unauthorized();
+            {
+                response.IsSuccess = false;
+                response.Message = "Check your credential";
 
-            var user = userObj.GetUsers().Where(w => w.Username == username && w.Password == password).First();
+                return Unauthorized(response);
+            }
+                
+
+            var user = userObj.GetUsers().Where(w =>
+                w.Username == credential.Username && w.Password == credential.Password).First();
 
             var claims = new List<Claim>();
 
@@ -107,9 +129,15 @@ namespace CookieBasedAuthWithPolicy.Controllers
 
             await HttpContext.SignInAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(claimsIdentity));
+                new ClaimsPrincipal(claimsIdentity),
+                new AuthenticationProperties
+                {
+                    IsPersistent = true,
+                    AllowRefresh = true,
+                    ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(60),
+                });
 
-            return Ok();
+            return Ok(response);
         }
 
         [Authorize]
@@ -121,6 +149,20 @@ namespace CookieBasedAuthWithPolicy.Controllers
 
             return Ok();
         }
+
+        [Authorize]
+        [HttpGet("GetUserClaim")]
+        public IActionResult GetUserClaim()
+        {
+            var userClaims = User.Claims.Select(s => new
+            {
+                s.Type,
+                s.Value
+            }).ToList();
+
+            return Ok(userClaims);
+        }
+
 
         [Authorize(Policy = AuthPolicy.ReadAuthPolicy)]
         [HttpGet]
@@ -140,7 +182,7 @@ namespace CookieBasedAuthWithPolicy.Controllers
         [HttpPut]
         public IActionResult Put()
         {
-            return Ok("Update Auth Policy");
+            return Ok();
         }
 
         [Authorize(Policy = AuthPolicy.DeleteAuthPolicy, Roles = RoleConstant.Admin)]

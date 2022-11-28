@@ -5,6 +5,9 @@ using Microsoft.AspNetCore.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var myAppCors = "myAppCors";
+var myAppAuthCookie = "myAppAuthCookie";
+
 // Add services to the container.
 // Configure cookie based authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -27,7 +30,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
             // Specify the name of the auth cookie.
             // ASP.NET picks a dumb name by default. "AspNetCore.Cookies"
-            options.Cookie.Name = "my_app_auth_cookie";
+            options.Cookie.Name = myAppAuthCookie;
+            options.Cookie.SameSite = SameSiteMode.None;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         });
 
 builder.Services.AddAuthorization(options =>
@@ -35,9 +40,9 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(AuthPolicy.ReadAuthPolicy, policy => policy.RequireRole(RoleConstant.User, RoleConstant.Admin));
     options.AddPolicy(AuthPolicy.CreateAuthPolicy, policy => policy.RequireRole(RoleConstant.Admin));
     options.AddPolicy(AuthPolicy.UpdateAuthPolicy, policy => policy.RequireClaim("IsPermanent"));
-    options.AddPolicy(AuthPolicy.DeleteAuthPolicy, policy => policy.RequireRole(RoleConstant.Admin));
     options.AddPolicy(AuthPolicy.DeleteAuthPolicy, policy => policy.Requirements.Add(new MinimumJoinYearPolicy(10)));
 });
+
 
 builder.Services.AddSingleton<IAuthorizationHandler, MinimumJoinYearPolicyHandler>();
 
@@ -56,6 +61,13 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+//app.UseCors(myAppCors);
+
+app.UseCors(builder => builder.WithOrigins("http://localhost:4200")
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials());
 
 app.UseAuthentication();
 
