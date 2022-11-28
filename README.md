@@ -114,3 +114,24 @@ builder.Services.AddSingleton<IAuthorizationHandler, MinimumJoinYearPolicyHandle
 ```
 
 Support reference : https://developer.okta.com/blog/2018/05/11/policy-based-authorization-in-aspnet-core
+
+-------------------------------------------------------------------------------------------------------------------------
+We try to stitching / wiring this backend service to client application. 
+
+### Scenario
+1. By default ASP.NET Core disabling CORS mechanism. It means other URL domain can't access URL of API. For instance "https://localhost:7062" is API's URL & "https://localhost:4200" is client's URL. As per cors default configuration, client app will get an error caused by cors
+2. By default service will only create a cookie in same site (SameSiteMode.Unspecified). It means once we have set up the CORS policy, we able to access login process, but unable to access other resources that have [Authorize] attribute. Since, cookie doesn't create to "https://localhost:4200"
+
+In order to solve point one, config CORS as per below code
+```
+app.UseCors(builder => builder.WithOrigins("http://localhost:4200")
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials());
+```
+
+In order to deale with point two, please add the below code into cookie setting. If using Same site mode = none, don't forget to activate secure policy. We have to make sure that other URL is secure (using https instead http)
+```
+options.Cookie.SameSite = SameSiteMode.None;
+options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+```
