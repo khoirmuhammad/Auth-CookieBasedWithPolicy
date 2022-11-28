@@ -112,3 +112,5 @@ Dont forget to register policy handler in configure service
 ```
 builder.Services.AddSingleton<IAuthorizationHandler, MinimumJoinYearPolicyHandler>();
 ```
+
+Support reference : https://developer.okta.com/blog/2018/05/11/policy-based-authorization-in-aspnet-core
